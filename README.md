@@ -1,7 +1,5 @@
 # AgroLLM-ES 🌱
 
-**Spanish domain LLM pipeline: custom dataset → QLoRA fine-tuning → RAG on PostgreSQL/pgvector → evaluation.**
-
 A small end-to-end project that adapts an open base model (Qwen2.5) to a Spanish
 technical domain: agronomy, irrigation and hydrology. It covers the full workflow —
 building the dataset, fine-tuning with QLoRA, grounding answers with RAG, and measuring
@@ -36,20 +34,20 @@ RAG → eval*.
 
 ```
  raw corpus (es)            data_pipeline/                  finetune/
-┌──────────────┐   clean   ┌────────────┐  build_sft  ┌──────────────────┐
-│ corpus.jsonl │ ────────► │ clean+dedup │ ──────────► │ SFT JSONL        │
-└──────────────┘           └────────────┘             │ (messages)       │
+┌──────────────┐   clean   ┌─────────────┐  build_sft  ┌──────────────────┐
+│ corpus.jsonl │ ────────► │ clean+dedup │ ──────────► │     SFT JSONL    │
+└──────────────┘           └─────────────┘             │    (messages)    │
                                  │                     └────────┬─────────┘
                                  │                              │ QLoRA / TRL
                                  │ ingest (chunks+embeddings)   ▼
                                  ▼                     ┌──────────────────┐
-                          ┌──────────────┐            │ Qwen2.5 + adapter│
-                          │ PostgreSQL   │            └────────┬─────────┘
-                          │ + pgvector   │◄───── RAG retrieve ─┘
+                          ┌──────────────┐             │ Qwen2.5 + adapter│
+                          │  PostgreSQL  │             └────────┬─────────┘
+                          │ + pgvector   │◄─────  RAG retrieve ─┘
                           └──────────────┘
                                  │
                                  ▼
-                          eval/ groundedness + hallucination report
+                       eval/ groundedness + hallucination report
 ```
 
 ---

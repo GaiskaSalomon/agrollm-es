@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Data artifacts (keep raw seed corpus, ignore generated)
+data/interim/
+data/processed/
+
+# Model outputs / checkpoints
+outputs/
+*.gguf
+*.safetensors
+*.bin
+
+# Env / secrets
+.env
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

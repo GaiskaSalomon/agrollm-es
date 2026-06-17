@@ -1,0 +1,21 @@
+# --- Core ---
+torch>=2.2
+transformers>=4.44
+datasets>=2.20
+accelerate>=0.33
+
+# --- Fine-tuning (QLoRA / SFT) ---
+trl>=0.9
+peft>=0.12
+bitsandbytes>=0.44                                   # 4-bit QLoRA (Windows wheels supported)
+sentencepiece>=0.2
+
+# --- RAG ---
+sentence-transformers>=3.0
+psycopg[binary]>=3.2
+pgvector>=0.3
+
+# --- Utils / eval ---
+numpy>=1.26
+tqdm>=4.66
+datasketch>=1.6        # MinHash dedup

@@ -1,0 +1,5 @@
+{"question": "¿Cómo se calcula la evapotranspiración del cultivo ETc?", "reference": "ETc se obtiene multiplicando la evapotranspiración de referencia ET0 por el coeficiente de cultivo Kc.", "must_include": ["ET0", "Kc"]}
+{"question": "¿Cuál es la fórmula del método racional?", "reference": "Q = C i A / 360, válido para cuencas pequeñas menores a 25 km2.", "must_include": ["C", "A", "360"]}
+{"question": "¿Qué eficiencia tiene el riego por goteo?", "reference": "El riego por goteo tiene una eficiencia de aplicación de 85 a 95 por ciento.", "must_include": ["goteo", "85"]}
+{"question": "¿Cómo se interpreta la salinidad del agua de riego?", "reference": "Se mide por conductividad eléctrica en dS/m; menor a 0.7 sin restricción, mayor a 3.0 restricción severa.", "must_include": ["conductividad", "dS/m"]}
+{"question": "¿Qué es el periodo de retorno?", "reference": "Es el intervalo promedio en años en que un evento es igualado o superado.", "must_include": ["años"]}

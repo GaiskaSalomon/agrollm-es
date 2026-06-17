@@ -1,14 +1,14 @@
 # AgroLLM-ES 🌱
 
-**A domain-specific Spanish LLM pipeline: custom dataset → QLoRA fine-tuning → RAG on PostgreSQL/pgvector → evaluation.**
+**Spanish domain LLM pipeline: custom dataset → QLoRA fine-tuning → RAG on PostgreSQL/pgvector → evaluation.**
 
-End-to-end project that takes an open base model (Qwen2.5) and specializes it for
-**agronomy, irrigation and hydrology in Spanish** — a domain where generic models
-hallucinate technical details. Built to demonstrate the full lifecycle a production
-domain LLM requires, not a toy notebook.
+A small end-to-end project that adapts an open base model (Qwen2.5) to a Spanish
+technical domain: agronomy, irrigation and hydrology. It covers the full workflow —
+building the dataset, fine-tuning with QLoRA, grounding answers with RAG, and measuring
+quality — and runs locally on a single GPU.
 
 > Author: **Gaiska Salomón** — PhD candidate in Statistics & Data Science.
-> Domain corpus drawn from my own field (irrigation engineering / hydrology).
+> The domain corpus comes from my own field (irrigation engineering / hydrology).
 
 ---
 

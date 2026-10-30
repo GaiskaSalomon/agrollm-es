@@ -13,8 +13,8 @@ quality — and runs locally on a single GPU.
 ## Why this project
 
 Generic LLMs are weak on specialized Spanish technical content: they invent crop
-coefficients, confuse irrigation methods, and cite non-existent norms. This repo shows
-the standard recipe to fix that:
+coefficients, confuse irrigation methods, and cite non-existent norms. This repo implements
+the standard recipe and measures how much each step helps:
 
 1. **Custom dataset** — collect a Spanish domain corpus, clean it, deduplicate it, and
    turn it into an instruction (SFT) dataset.
@@ -74,6 +74,7 @@ python -m src.rag.query   --q "¿Cómo se calcula la lámina de riego para maíz
 
 # 5. Evaluate (+ hallucination check)
 python -m src.eval.evaluate --report outputs/eval_report.json
+python -m src.eval.evaluate --adapter none --report outputs/eval_base_rag.json   # base model + RAG
 ```
 
 No local GPU? Step 3 runs as-is on a free **Google Colab T4** (QLoRA 4-bit fits a 0.5B–3B
@@ -83,28 +84,43 @@ base). Steps 1, 2, 4 and 5 run on CPU.
 
 ## Results
 
-Trained locally on an **NVIDIA RTX 3060 (12 GB)**, base `Qwen/Qwen2.5-0.5B-Instruct`,
-QLoRA 4-bit, 3 epochs (~19 s). Evaluated with the RAG
-pipeline on a **5-question** hand-written domain test set (`src/eval/testset.jsonl`). Metrics from `outputs/eval_report.json`:
+Base `Qwen/Qwen2.5-0.5B-Instruct`, QLoRA 4-bit, 3 epochs (~43 s on an **NVIDIA RTX 3060, 12 GB**),
+trained on 45 examples (43 corpus documents + 2 hand-written worked examples). Both systems answer
+through the same RAG pipeline (top-4 chunks from pgvector, greedy decoding, one run).
 
-| Metric | Value |
-|---|---|
-| keyword_recall | **1.00** |
-| semantic_sim (vs reference) | **0.78** |
-| groundedness (answer vs retrieved context) | **0.67** |
-| hallucination_rate | **0.00** |
+**Evaluation set** (`src/eval/testset.jsonl`, 100 hand-written questions over a 59-document corpus):
 
-**Before / after (same question, same retrieval):**
+| Group | n | What it tests |
+|---|---|---|
+| answerable, *seen* | 55 | the gold document was in the fine-tuning data |
+| answerable, *unseen* | 25 | the gold document was **withheld from fine-tuning** (`"heldout": true`) but is in the RAG index, so the answer has to come from retrieval |
+| unanswerable | 20 | no answer in the corpus; the right behaviour is to say so |
 
-> *¿Cómo se calcula la lámina de riego para maíz?*
+| Group | Metric | Base + RAG | Fine-tuned + RAG |
+|---|---|---|---|
+| seen (n=55) | keyword recall | 0.79 (95% CI 0.68–0.89) | 0.70 (0.58–0.81) |
+| seen (n=55) | all keywords present | 0.76 | 0.65 |
+| unseen (n=25) | keyword recall | 0.78 (0.62–0.92) | 0.74 (0.56–0.90) |
+| unseen (n=25) | all keywords present | 0.76 | 0.72 |
+| answerable (n=80) | retrieval hit (gold doc in top-4) | 0.95 | 0.95 |
+| unanswerable (n=20) | abstained correctly | 2 / 20 | 1 / 20 |
+| unanswerable (n=20) | hallucination rate (groundedness < 0.35) | 0.15 | 0.30 |
 
-- **Base model (no fine-tune, no RAG):** invents a non-existent *"fórmula RRA"* and
-  unrelated units — confident hallucination.
-- **Fine-tuned + RAG:** uses the correct domain relation `ETc = ET0 × Kc`, the real Kc
-  values from the corpus (0.4 initial → 0.7 maturation), and cites retrieved sources.
+Intervals are bootstrap percentiles over questions. Per-question answers are in
+[`reports/eval_base_rag.json`](reports/eval_base_rag.json) and
+[`reports/eval_finetuned_rag.json`](reports/eval_finetuned_rag.json).
 
-A 0.5B model is intentionally small so it trains on a laptop GPU; scale the `--base`
-flag to a 3B/7B Qwen or Llama for production quality — the pipeline is unchanged.
+**What the numbers say**
+
+- Retrieval does the work: the gold document is in the top-4 chunks for 95% of answerable questions.
+- **Fine-tuning did not help on this evaluation.** Recall is lower for the adapter than for the base
+  model on both seen and unseen documents; the differences are within noise (the interval of the
+  paired difference on seen questions is −0.19 to 0.00, and −0.18 to +0.10 on unseen), so the honest
+  reading is "no measurable gain". Training data is the corpus text copied as the answer, which teaches
+  the model to paraphrase documents, not to answer questions.
+- **Abstention is the main weakness.** Both systems answer almost every unanswerable question with an
+  invented figure (for example a fertilizer dose or a reservoir capacity) instead of saying the context
+  does not contain it, even though the prompt asks for that.
 
 ## Running on Windows (notes)
 
@@ -133,13 +149,17 @@ On Linux (the production target) these quirks do not occur.
 
 ## Limitations
 
-- **Tiny evaluation.** The test set has 5 questions and the seed corpus 12 documents, so the
-  metrics above (e.g. recall 1.00, hallucination rate 0.00) are a smoke test of the pipeline,
-  **not** evidence of general quality. No confidence intervals; one run, one seed.
-- The base model (Qwen2.5-0.5B) is intentionally small; results will not transfer to larger
-  models or real agronomic corpora without re-evaluation on a larger, independently built test set.
-- The hallucination and groundedness scores are heuristic (embedding similarity thresholds), not
-  human-labelled.
+- **Small, hand-written benchmark.** 100 questions over 59 short documents written by the author; the
+  groups are small (25 and 20 questions), so the intervals above are wide. Keyword recall is a crude
+  proxy (a correct answer phrased differently scores zero); semantic similarity and groundedness are
+  embedding-based heuristics, not human judgements.
+- **The questions are written from the same documents they test**, so this measures reading a known
+  corpus, not general agronomy knowledge. It says nothing about questions outside that corpus.
+- Single run, single seed, greedy decoding, a 0.5B model. The fine-tuning set is 45 examples; the
+  conclusion that it did not help applies to this recipe and size only.
+- Corpus facts are standard textbook values (FAO-56, FAO irrigation and drainage papers, usual
+  hydrology formulas) summarised by the author, not an audited source; check them before real use.
+- Unanswerable questions are not handled: see the abstention results above.
 
 ## Tech stack
 
@@ -151,7 +171,7 @@ Python · PyTorch · HuggingFace `transformers` / `datasets` · `TRL` · `PEFT` 
 ```
 agrollm-es/
 ├── data/
-│   ├── raw/corpus.jsonl          # seed Spanish domain corpus (runs out of the box)
+│   ├── raw/corpus.jsonl          # 59-document Spanish domain corpus (16 flagged "heldout")
 │   ├── interim/                  # cleaned + dedup output
 │   └── processed/                # final SFT dataset
 ├── src/

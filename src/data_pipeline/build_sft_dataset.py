@@ -5,6 +5,9 @@ Produces conversational JSONL compatible with TRL's `SFTTrainer`:
                   {"role": "user", ...},
                   {"role": "assistant", ...}]}
 
+Documents flagged `"heldout": true` are skipped (they stay in the RAG index and are
+used to build the "unseen" part of the evaluation set).
+
 Two sources of examples:
   1. Curated, hand-written QA pairs (high quality, domain-correct anchors).
   2. Synthetic instruction pairs generated from each corpus document via templates
@@ -90,6 +93,9 @@ def run(in_path: Path, out_path: Path, seed: int = 13) -> int:
         if not line:
             continue
         rec = json.loads(line)
+        if rec.get("heldout"):
+            # Withheld from fine-tuning so the eval can measure retrieval-only answers.
+            continue
         text = rec["text"]
         question = make_question(text)
         examples.append(

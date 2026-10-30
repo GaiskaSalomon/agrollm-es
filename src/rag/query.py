@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 from pathlib import Path
 
 from src.rag import db
@@ -31,22 +32,28 @@ def retrieve(question: str, k: int = 4):
     return db.search(conn, qvec, k=k)
 
 
-def generate_with_model(prompt: str, base: str, adapter: str | None) -> str | None:
-    try:
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-    except ImportError:
-        return None
+@lru_cache(maxsize=2)
+def _load(base: str, adapter: str | None):
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    src = adapter if adapter and Path(adapter).exists() else base
-    tok = AutoTokenizer.from_pretrained(src)
+    use_adapter = bool(adapter) and Path(adapter).exists()
+    tok = AutoTokenizer.from_pretrained(adapter if use_adapter else base)
     model = AutoModelForCausalLM.from_pretrained(
         base, torch_dtype=torch.float32, device_map="auto" if torch.cuda.is_available() else None
     )
-    if adapter and Path(adapter).exists():
+    if use_adapter:
         from peft import PeftModel
 
         model = PeftModel.from_pretrained(model, adapter)
+    return tok, model
+
+
+def generate_with_model(prompt: str, base: str, adapter: str | None) -> str | None:
+    try:
+        tok, model = _load(base, adapter)
+    except ImportError:
+        return None
 
     messages = [{"role": "user", "content": prompt}]
     inputs = tok.apply_chat_template(

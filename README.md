@@ -84,8 +84,8 @@ base). Steps 1, 2, 4 and 5 run on CPU.
 ## Results
 
 Trained locally on an **NVIDIA RTX 3060 (12 GB)**, base `Qwen/Qwen2.5-0.5B-Instruct`,
-QLoRA 4-bit, 3 epochs (~19 s). Evaluated on a held-out domain test set with the RAG
-pipeline. Metrics from `outputs/eval_report.json`:
+QLoRA 4-bit, 3 epochs (~19 s). Evaluated with the RAG
+pipeline on a **5-question** hand-written domain test set (`src/eval/testset.jsonl`). Metrics from `outputs/eval_report.json`:
 
 | Metric | Value |
 |---|---|
@@ -118,9 +118,9 @@ their fixes (already applied in the code):
 
 On Linux (the production target) these quirks do not occur.
 
-## Maps to the role (Promtec — LLM Engineer)
+## Components
 
-| What you'll build (job) | Where in this repo |
+| Capability | Where in this repo |
 |---|---|
 | Spanish dataset pipeline: cleaning, dedup, tokenization | `src/data_pipeline/` |
 | CPT/SFT on Llama/Qwen | `src/finetune/train_qlora.py` (Qwen2.5) |
@@ -130,6 +130,16 @@ On Linux (the production target) these quirks do not occur.
 | Evaluation suite + hallucination monitoring | `src/eval/evaluate.py` |
 
 ---
+
+## Limitations
+
+- **Tiny evaluation.** The test set has 5 questions and the seed corpus 12 documents, so the
+  metrics above (e.g. recall 1.00, hallucination rate 0.00) are a smoke test of the pipeline,
+  **not** evidence of general quality. No confidence intervals; one run, one seed.
+- The base model (Qwen2.5-0.5B) is intentionally small; results will not transfer to larger
+  models or real agronomic corpora without re-evaluation on a larger, independently built test set.
+- The hallucination and groundedness scores are heuristic (embedding similarity thresholds), not
+  human-labelled.
 
 ## Tech stack
 
